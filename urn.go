@@ -44,3 +44,14 @@ func (u Urn) Choose(n int) (choice, remainder Urn) {
 	}
 	return
 }
+
+// AllEqual returns whether all of the elements of the urn
+// are equal to the value x.
+func (u Urn) AllEqual(x int) bool {
+	for _, k := range u {
+		if k != x {
+			return false
+		}
+	}
+	return true
+}
