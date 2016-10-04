@@ -1,3 +1,3 @@
-# probability
+# approb
 
-This package will contain a set of tools for approximating various probabilities. It is mainly intended to be used to check one's manual calculations.
+This package contains a set of tools for probability approximating. It is mainly intended to be used to check one's manual calculations.
