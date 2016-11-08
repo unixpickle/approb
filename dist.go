@@ -37,29 +37,7 @@ func NewSampler(start, end float64, f func(float64) float64) *Sampler {
 
 // Sample samples from the sampler.
 func (s *Sampler) Sample() float64 {
-	x := rand.Float64()
-	min := -1
-	max := len(s.integrals)
-	for min+1 < max {
-		mid := (min + max) / 2
-		intVal := s.integrals[mid]
-		if intVal > x {
-			max = mid
-		} else if intVal < x {
-			min = mid
-		} else if intVal == x {
-			return s.xValues[mid]
-		}
-	}
-	if min < 0 {
-		return s.xValues[max]
-	} else if max >= len(s.xValues) {
-		return s.xValues[min]
-	}
-	int1 := s.integrals[min]
-	int2 := s.integrals[max]
-	progress := (x - int1) / (int2 - int1)
-	return progress*s.xValues[max] + (1-progress)*s.xValues[min]
+	return bilinearEval(s.integrals, s.xValues, rand.Float64())
 }
 
 // Normalize creates a probability distribution out of
@@ -74,4 +52,29 @@ func Normalize(start, end float64, f func(float64) float64) func(float64) float6
 	return func(x float64) float64 {
 		return f(x) / area
 	}
+}
+
+func bilinearEval(xs, ys []float64, x float64) float64 {
+        min := -1
+        max := len(xs)
+        for min+1 < max {
+                mid := (min + max) / 2
+                intVal := xs[mid]
+                if intVal > x {
+                        max = mid
+                } else if intVal < x {
+                        min = mid
+                } else if intVal == x {
+                        return ys[mid]
+                }
+        }
+        if min < 0 {
+                return ys[max]
+        } else if max >= len(xs) {
+                return ys[min]
+        }
+        int1 := xs[min]
+        int2 := xs[max]
+        progress := (x - int1) / (int2 - int1)
+        return progress*ys[max] + (1-progress)*ys[min]
 }
