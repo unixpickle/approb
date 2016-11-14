@@ -2,6 +2,7 @@ package approb
 
 import (
 	"math"
+	"math/rand"
 	"testing"
 )
 
@@ -15,5 +16,24 @@ func TestSampleDist(t *testing.T) {
 	}
 	if math.Abs(v-1) > 0.01 {
 		t.Errorf("expected var 1 got %f", v)
+	}
+}
+
+func TestCorrelation(t *testing.T) {
+	corr := Correlation(100000, 0.1, func() float64 {
+		return rand.Float64()
+	}, func() float64 {
+		return rand.Float64()
+	})
+	if math.Abs(corr-1) > 1e-2 {
+		t.Errorf("expected correlation 1 but got %f", corr)
+	}
+	corr = Correlation(500000, 0.1, func() float64 {
+		return rand.NormFloat64()
+	}, func() float64 {
+		return rand.Float64()
+	})
+	if math.Abs(corr - 0.287) > 1e-2 {
+		t.Errorf("expected correlation 0.287 but got %f", corr)
 	}
 }
