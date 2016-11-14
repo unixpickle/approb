@@ -33,7 +33,7 @@ func TestCorrelation(t *testing.T) {
 	}, func() float64 {
 		return rand.Float64()
 	})
-	if math.Abs(corr - 0.287) > 1e-2 {
+	if math.Abs(corr - 0.6427) > 1e-2 {
 		t.Errorf("expected correlation 0.287 but got %f", corr)
 	}
 }
