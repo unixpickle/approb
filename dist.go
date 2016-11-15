@@ -37,7 +37,8 @@ func NewSampler(start, end float64, f func(float64) float64) *Sampler {
 
 // Sample samples from the sampler.
 func (s *Sampler) Sample() float64 {
-	return bilinearEval(s.integrals, s.xValues, rand.Float64())
+	sample, _ := bilinearEval(s.integrals, s.xValues, rand.Float64())
+	return sample
 }
 
 // Normalize creates a probability distribution out of
@@ -82,7 +83,7 @@ func Correlation(count int, binSize float64, dist1, dist2 func() float64) float6
 	return correlation / math.Sqrt(mag1*mag2)
 }
 
-func bilinearEval(xs, ys []float64, x float64) float64 {
+func bilinearEval(xs, ys []float64, x float64) (float64, int) {
 	min := -1
 	max := len(xs)
 	for min+1 < max {
@@ -93,16 +94,20 @@ func bilinearEval(xs, ys []float64, x float64) float64 {
 		} else if intVal < x {
 			min = mid
 		} else if intVal == x {
-			return ys[mid]
+			return ys[mid], mid
 		}
 	}
 	if min < 0 {
-		return ys[max]
+		return ys[max], 0
 	} else if max >= len(xs) {
-		return ys[min]
+		return ys[min], len(xs) - 1
 	}
 	int1 := xs[min]
 	int2 := xs[max]
 	progress := (x - int1) / (int2 - int1)
-	return progress*ys[max] + (1-progress)*ys[min]
+	idx := min
+	if progress > 0.5 {
+		idx = max
+	}
+	return progress*ys[max] + (1-progress)*ys[min], idx
 }

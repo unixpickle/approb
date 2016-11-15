@@ -35,5 +35,6 @@ func NewHazardDensity(maxTime float64, rate func(t float64) float64) *HazardDens
 
 // Eval evaluates the density at the given time.
 func (h *HazardDensity) Eval(t float64) float64 {
-	return bilinearEval(h.xVals, h.densityVals, t)
+	res, _ := bilinearEval(h.xVals, h.densityVals, t)
+	return res
 }
