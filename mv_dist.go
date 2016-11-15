@@ -26,21 +26,27 @@ func newMVSamplerNode(steps int, min, max, givens linalg.Vector,
 	}
 
 	varIdx := len(givens)
-	step := (max[varIdx] - min[varIdx]) / float64(steps)
+	step := (max[varIdx] - min[varIdx]) / float64(steps-1)
 
 	var res mvSamplerNode
 	var totalProb kahan.Summer64
 	for i := 0; i < steps; i++ {
-		coordVal := (float64(i) + 0.5) * step
+		coordVal := min[varIdx] + float64(i)*step
 		givens = append(givens, coordVal)
 		subNode := newMVSamplerNode(steps, min, max, givens, f)
 		givens = givens[:len(givens)-1]
-		res.Probabilities = append(res.Probabilities, subNode.TotalProb)
+		res.Probabilities = append(res.Probabilities, totalProb.Sum())
 		res.Values = append(res.Values, coordVal)
 		if len(subNode.Values) > 0 {
 			res.Children = append(res.Children, subNode)
 		}
-		totalProb.Add(res.TotalProb)
+
+		// We have (steps-1) rectangles but (steps) children.
+		// Thus, we don't want to count the last probability
+		// as part of a rectangle.
+		if i+1 < steps {
+			totalProb.Add(subNode.TotalProb)
+		}
 	}
 	res.TotalProb = totalProb.Sum()
 	return &res
@@ -56,10 +62,10 @@ func (m *mvSamplerNode) Sample() linalg.Vector {
 }
 
 func rectProb(steps int, min, max, coord linalg.Vector, f func(linalg.Vector) float64) float64 {
-	var rectSize float64
+	rectSize := 1.0
 	for i, minVal := range min {
 		maxVal := max[i]
-		rectSize *= (maxVal - minVal) / float64(steps)
+		rectSize *= (maxVal - minVal) / float64(steps-1)
 	}
 	return f(coord) * rectSize
 }
@@ -75,10 +81,18 @@ type MVSampler struct {
 // The min and max parameters specify bounds on the
 // parameters.
 func NewMVSampler(min, max linalg.Vector, f func(linalg.Vector) float64) *MVSampler {
+	return NewMVSamplerPrec(numSampleDivisions, min, max, f)
+}
+
+// NewMVSamplerPrec creates an MVSampler.
+//
+// Building the distribution will result in f being called
+// approximately n times.
+func NewMVSamplerPrec(n int, min, max linalg.Vector, f func(linalg.Vector) float64) *MVSampler {
 	if len(min) != len(max) {
 		panic("mismatching min and max sizes")
 	}
-	count := 1 + int(math.Ceil(math.Pow(numSampleDivisions, 1/float64(len(min)))))
+	count := 1 + int(math.Ceil(math.Pow(float64(n), 1/float64(len(min)))))
 	return &MVSampler{
 		rootNode: newMVSamplerNode(count, min, max, nil, f),
 	}
