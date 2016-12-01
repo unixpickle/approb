@@ -3,6 +3,7 @@ package approb
 import (
 	"math"
 	"math/rand"
+	"sort"
 
 	"github.com/unixpickle/num-analysis/kahan"
 	"github.com/unixpickle/num-analysis/linalg"
@@ -61,6 +62,20 @@ func (m *mvSamplerNode) Sample() linalg.Vector {
 	return append([]float64{val}, sub...)
 }
 
+func (m *mvSamplerNode) SampleCond(v linalg.Vector) linalg.Vector {
+	if len(v) == 0 {
+		return m.Sample()
+	}
+	idx := sort.SearchFloat64s(m.Values, v[0])
+	if idx == len(m.Values) {
+		idx = len(m.Values) - 1
+	}
+	if idx > 0 && math.Abs(m.Values[idx-1]-v[0]) < math.Abs(m.Values[idx]-v[0]) {
+		idx--
+	}
+	return append([]float64{v[0]}, m.Children[idx].SampleCond(v[1:])...)
+}
+
 func rectProb(steps int, min, max, coord linalg.Vector, f func(linalg.Vector) float64) float64 {
 	rectSize := 1.0
 	for i, minVal := range min {
@@ -101,4 +116,15 @@ func NewMVSamplerPrec(n int, min, max linalg.Vector, f func(linalg.Vector) float
 // Sample samples the distribution.
 func (m *MVSampler) Sample() linalg.Vector {
 	return m.rootNode.Sample()
+}
+
+// SampleCond samples the distribution conditioned on the
+// values for a subset of the variables.
+// More specifically, the first len(v) variables will be
+// set to the values in v.
+//
+// The entire set of sampled variables will be returned,
+// including the pre-determined values in v.
+func (m *MVSampler) SampleCond(v linalg.Vector) linalg.Vector {
+	return m.rootNode.SampleCond(v)
 }
